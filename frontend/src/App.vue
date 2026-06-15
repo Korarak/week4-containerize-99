@@ -6,6 +6,7 @@ const products      = ref([])       // รายการสินค้าท�
 const loading       = ref(true)     // แสดง loading spinner
 const search        = ref('')       // ข้อความค้นหา
 const catFilter     = ref('')       // category ที่กำลัง filter
+const sortBy        = ref('')       // เรียงลำดับสินค้า
 const showModal     = ref(false)    // แสดง/ซ่อน modal เพิ่ม/แก้ไข
 const editingId     = ref(null)     // null = กำลัง add, มีค่า = กำลัง edit
 const confirmDelete = ref(null)     // เก็บ product ที่จะลบ (ใช้ confirm dialog)
@@ -16,18 +17,24 @@ const form = ref({ name: '', category: '', price: '', stock: 0, description: '' 
 let debounceTimer = null            // สำหรับ debounce search input
 // ── Computed ─────────────────────────────────────────────────────
 
-// กรองสินค้าตาม search + catFilter พร้อมกัน
+// กรองและเรียงสินค้าตาม search + catFilter + sortBy
 const filtered = computed(() => {
   const s = search.value.toLowerCase()
-  return products.value.filter(p => {
-    // ตรงกับ search text? (เช็คทั้ง name และ description)
+  const list = products.value.filter(p => {
     const matchS = !s ||
       p.name.toLowerCase().includes(s) ||
       (p.description || '').toLowerCase().includes(s)
-    // ตรงกับ category filter?
     const matchC = !catFilter.value || p.category === catFilter.value
     return matchS && matchC
   })
+  const sorters = {
+    'price-asc':   (a, b) => a.price - b.price,
+    'price-desc':  (a, b) => b.price - a.price,
+    'name-asc':    (a, b) => a.name.localeCompare(b.name, 'th'),
+    'stock-asc':   (a, b) => a.stock - b.stock,
+    'stock-desc':  (a, b) => b.stock - a.stock,
+  }
+  return sortBy.value ? [...list].sort(sorters[sortBy.value]) : list
 })
 
 // สร้าง list ของ categories จาก products ที่มีอยู่ (unique + sort)
@@ -202,6 +209,14 @@ onMounted(fetchProducts)
         <select v-model="catFilter" @change="fetchProducts" class="input-select">
           <option value="">ทุกหมวดหมู่</option>
           <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+        </select>
+        <select v-model="sortBy" class="input-select">
+          <option value="">เรียงตาม: ค่าเริ่มต้น</option>
+          <option value="price-asc">ราคา น้อย → มาก</option>
+          <option value="price-desc">ราคา มาก → น้อย</option>
+          <option value="name-asc">ชื่อ A → Z</option>
+          <option value="stock-asc">สต็อก น้อย → มาก</option>
+          <option value="stock-desc">สต็อก มาก → น้อย</option>
         </select>
         <span class="result-count" v-if="!loading">
           แสดง {{ filtered.length }} / {{ products.length }} รายการ
