@@ -138,6 +138,7 @@ onMounted(fetchProducts)
 
     <!-- HEADER -->
     <header class="app-header">
+      <div class="header-glow"></div>
       <div class="logo">
         <span class="logo-icon">📦</span>
         <div>
@@ -334,23 +335,38 @@ onMounted(fetchProducts)
 
 .app-header {
   position: sticky; top: 0; z-index: 100;
-  background: #fff; border-bottom: 1px solid #e2e8f0;
-  height: 62px; padding: 0 1.5rem;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #064e3b 100%);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(16,185,129,.25);
+  height: 64px; padding: 0 1.5rem;
   display: flex; align-items: center; gap: .85rem;
-  box-shadow: 0 1px 6px rgba(0,0,0,.07);
+  box-shadow: 0 4px 24px rgba(16,185,129,.15), 0 1px 0 rgba(255,255,255,.05) inset;
+  overflow: hidden;
 }
-.logo { display: flex; align-items: center; gap: .6rem; }
-.logo-icon { font-size: 1.6rem; }
-.logo-name { font-weight: 800; font-size: 1.15rem; color: #065f46; line-height: 1; }
-.logo-sub  { font-size: .72rem; color: #64748b; }
+.header-glow {
+  position: absolute; left: 50%; top: -30px;
+  transform: translateX(-50%);
+  width: 320px; height: 60px;
+  background: radial-gradient(ellipse, rgba(16,185,129,.35) 0%, transparent 70%);
+  pointer-events: none;
+}
+.logo { display: flex; align-items: center; gap: .6rem; position: relative; }
+.logo-icon { font-size: 1.6rem; filter: drop-shadow(0 0 6px rgba(16,185,129,.7)); }
+.logo-name { font-weight: 800; font-size: 1.15rem; color: #fff; line-height: 1; letter-spacing: .01em; }
+.logo-sub  { font-size: .72rem; color: rgba(167,243,208,.7); }
 .btn-add {
-  margin-left: auto;
-  background: #10b981; color: #fff;
-  border: none; border-radius: 8px;
+  margin-left: auto; position: relative;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff; border: none; border-radius: 8px;
   padding: .55rem 1.2rem; font-size: .9rem; font-weight: 700;
-  cursor: pointer; transition: background .2s;
+  cursor: pointer; transition: all .2s;
+  box-shadow: 0 0 12px rgba(16,185,129,.4);
 }
-.btn-add:hover { background: #059669; }
+.btn-add:hover {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  box-shadow: 0 0 20px rgba(16,185,129,.6);
+  transform: translateY(-1px);
+}
 
 .main { max-width: 1280px; margin: 0 auto; padding: 1.75rem 1.5rem; }
 
@@ -518,7 +534,7 @@ onMounted(fetchProducts)
 .app-footer {
   text-align: center; padding: 1.25rem;
   font-size: .8rem; color: #94a3b8;
-  border-top: 1px solid #e2e8f0; margin-top: 2rem;
+  border-top: 1px solid rgba(16,185,129,.15); margin-top: 2rem;
 }
 
 @media (max-width: 640px) {
