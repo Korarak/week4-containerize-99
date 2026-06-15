@@ -116,6 +116,19 @@ async function deleteProduct(id) {
   fetchProducts()
 }
 
+// export สินค้าที่กรองแล้วเป็น CSV
+function exportCSV() {
+  const header = 'ชื่อสินค้า,หมวดหมู่,ราคา,สต็อก,คำอธิบาย'
+  const rows = filtered.value.map(p =>
+    [p.name, p.category, p.price, p.stock, p.description || '']
+      .map(v => `"${String(v).replace(/"/g, '""')}"`)
+      .join(',')
+  )
+  const blob = new Blob(['﻿' + [header, ...rows].join('\n')], { type: 'text/csv;charset=utf-8' })
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'stockpro.csv' })
+  a.click()
+}
+
 // คืน CSS class ตาม stock level (ใช้กับ stock bar และตัวเลข)
 function stockClass(s) {
   if (s <= 0) return 'out'    // หมด
@@ -153,6 +166,7 @@ onMounted(fetchProducts)
           <div class="logo-sub">ระบบจัดการสินค้าคงคลัง</div>
         </div>
       </div>
+      <button class="btn-export" @click="exportCSV" title="Export CSV">⬇ CSV</button>
       <button class="btn-add" @click="openAdd">+ เพิ่มสินค้า</button>
     </header>
 
@@ -382,6 +396,13 @@ onMounted(fetchProducts)
   box-shadow: 0 0 20px rgba(16,185,129,.6);
   transform: translateY(-1px);
 }
+.btn-export {
+  background: rgba(255,255,255,.1); color: #a7f3d0;
+  border: 1px solid rgba(167,243,208,.3); border-radius: 8px;
+  padding: .5rem .9rem; font-size: .85rem; font-weight: 600;
+  cursor: pointer; transition: all .2s;
+}
+.btn-export:hover { background: rgba(255,255,255,.18); color: #fff; }
 
 .main { max-width: 1280px; margin: 0 auto; padding: 1.75rem 1.5rem; }
 
