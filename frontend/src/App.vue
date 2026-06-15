@@ -321,6 +321,12 @@ onMounted(fetchProducts)
     </div>
 
   </div>
+
+  <!-- FOOTER -->
+  <footer class="app-footer">
+    <span>© 2026 StockPro — ระบบจัดการสินค้าคงคลัง</span>
+  </footer>
+
 </template>
 
 <style scoped>
@@ -508,6 +514,12 @@ onMounted(fetchProducts)
   font-weight: 700; cursor: pointer;
 }
 .btn-danger-confirm:hover { background: #b91c1c; }
+
+.app-footer {
+  text-align: center; padding: 1.25rem;
+  font-size: .8rem; color: #94a3b8;
+  border-top: 1px solid #e2e8f0; margin-top: 2rem;
+}
 
 @media (max-width: 640px) {
   .form-row { grid-template-columns: 1fr; }
