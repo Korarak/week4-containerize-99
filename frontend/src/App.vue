@@ -14,6 +14,7 @@ const confirmDelete = ref(null)     // เก็บ product ที่จะล�
 // ข้อมูลในฟอร์ม modal
 const form = ref({ name: '', category: '', price: '', stock: 0, description: '' })
 
+const showScrollTop = ref(false)    // แสดงปุ่ม scroll to top
 let debounceTimer = null            // สำหรับ debounce search input
 // ── Computed ─────────────────────────────────────────────────────
 
@@ -150,7 +151,12 @@ function catClass(cat) {
 }
 
 // โหลดสินค้าทันทีเมื่อ component mount ครั้งแรก
-onMounted(fetchProducts)
+onMounted(() => {
+  fetchProducts()
+  window.addEventListener('scroll', () => {
+    showScrollTop.value = window.scrollY > 300
+  })
+})
 </script>
 
 <template>
@@ -351,6 +357,14 @@ onMounted(fetchProducts)
     </div>
 
   </div>
+
+  <!-- BACK TO TOP -->
+  <button
+    v-show="showScrollTop"
+    class="btn-top"
+    @click="window.scrollTo({ top: 0, behavior: 'smooth' })"
+    title="กลับด้านบน"
+  >▲</button>
 
   <!-- FOOTER -->
   <footer class="app-footer">
@@ -566,6 +580,16 @@ onMounted(fetchProducts)
   font-weight: 700; cursor: pointer;
 }
 .btn-danger-confirm:hover { background: #b91c1c; }
+
+.btn-top {
+  position: fixed; bottom: 1.75rem; right: 1.75rem; z-index: 200;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff; border: none; font-size: 1rem;
+  cursor: pointer; box-shadow: 0 4px 14px rgba(16,185,129,.5);
+  transition: all .2s;
+}
+.btn-top:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(16,185,129,.7); }
 
 .app-footer {
   text-align: center; padding: 1.25rem;
