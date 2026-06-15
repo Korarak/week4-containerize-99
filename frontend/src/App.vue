@@ -6,6 +6,7 @@ const products      = ref([])       // รายการสินค้าท�
 const loading       = ref(true)     // แสดง loading spinner
 const search        = ref('')       // ข้อความค้นหา
 const catFilter     = ref('')       // category ที่กำลัง filter
+const sortBy        = ref('')       // เรียงลำดับสินค้า
 const showModal     = ref(false)    // แสดง/ซ่อน modal เพิ่ม/แก้ไข
 const editingId     = ref(null)     // null = กำลัง add, มีค่า = กำลัง edit
 const confirmDelete = ref(null)     // เก็บ product ที่จะลบ (ใช้ confirm dialog)
@@ -13,21 +14,28 @@ const confirmDelete = ref(null)     // เก็บ product ที่จะล�
 // ข้อมูลในฟอร์ม modal
 const form = ref({ name: '', category: '', price: '', stock: 0, description: '' })
 
+const showScrollTop = ref(false)    // แสดงปุ่ม scroll to top
 let debounceTimer = null            // สำหรับ debounce search input
 // ── Computed ─────────────────────────────────────────────────────
 
-// กรองสินค้าตาม search + catFilter พร้อมกัน
+// กรองและเรียงสินค้าตาม search + catFilter + sortBy
 const filtered = computed(() => {
   const s = search.value.toLowerCase()
-  return products.value.filter(p => {
-    // ตรงกับ search text? (เช็คทั้ง name และ description)
+  const list = products.value.filter(p => {
     const matchS = !s ||
       p.name.toLowerCase().includes(s) ||
       (p.description || '').toLowerCase().includes(s)
-    // ตรงกับ category filter?
     const matchC = !catFilter.value || p.category === catFilter.value
     return matchS && matchC
   })
+  const sorters = {
+    'price-asc':   (a, b) => a.price - b.price,
+    'price-desc':  (a, b) => b.price - a.price,
+    'name-asc':    (a, b) => a.name.localeCompare(b.name, 'th'),
+    'stock-asc':   (a, b) => a.stock - b.stock,
+    'stock-desc':  (a, b) => b.stock - a.stock,
+  }
+  return sortBy.value ? [...list].sort(sorters[sortBy.value]) : list
 })
 
 // สร้าง list ของ categories จาก products ที่มีอยู่ (unique + sort)
@@ -109,6 +117,19 @@ async function deleteProduct(id) {
   fetchProducts()
 }
 
+// export สินค้าที่กรองแล้วเป็น CSV
+function exportCSV() {
+  const header = 'ชื่อสินค้า,หมวดหมู่,ราคา,สต็อก,คำอธิบาย'
+  const rows = filtered.value.map(p =>
+    [p.name, p.category, p.price, p.stock, p.description || '']
+      .map(v => `"${String(v).replace(/"/g, '""')}"`)
+      .join(',')
+  )
+  const blob = new Blob(['﻿' + [header, ...rows].join('\n')], { type: 'text/csv;charset=utf-8' })
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'stockpro.csv' })
+  a.click()
+}
+
 // คืน CSS class ตาม stock level (ใช้กับ stock bar และตัวเลข)
 function stockClass(s) {
   if (s <= 0) return 'out'    // หมด
@@ -130,7 +151,12 @@ function catClass(cat) {
 }
 
 // โหลดสินค้าทันทีเมื่อ component mount ครั้งแรก
-onMounted(fetchProducts)
+onMounted(() => {
+  fetchProducts()
+  window.addEventListener('scroll', () => {
+    showScrollTop.value = window.scrollY > 300
+  })
+})
 </script>
 
 <template>
@@ -138,6 +164,7 @@ onMounted(fetchProducts)
 
     <!-- HEADER -->
     <header class="app-header">
+      <div class="header-glow"></div>
       <div class="logo">
         <span class="logo-icon">📦</span>
         <div>
@@ -145,6 +172,7 @@ onMounted(fetchProducts)
           <div class="logo-sub">ระบบจัดการสินค้าคงคลัง</div>
         </div>
       </div>
+      <button class="btn-export" @click="exportCSV" title="Export CSV">⬇ CSV</button>
       <button class="btn-add" @click="openAdd">+ เพิ่มสินค้า</button>
     </header>
 
@@ -201,6 +229,14 @@ onMounted(fetchProducts)
         <select v-model="catFilter" @change="fetchProducts" class="input-select">
           <option value="">ทุกหมวดหมู่</option>
           <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+        </select>
+        <select v-model="sortBy" class="input-select">
+          <option value="">เรียงตาม: ค่าเริ่มต้น</option>
+          <option value="price-asc">ราคา น้อย → มาก</option>
+          <option value="price-desc">ราคา มาก → น้อย</option>
+          <option value="name-asc">ชื่อ A → Z</option>
+          <option value="stock-asc">สต็อก น้อย → มาก</option>
+          <option value="stock-desc">สต็อก มาก → น้อย</option>
         </select>
         <span class="result-count" v-if="!loading">
           แสดง {{ filtered.length }} / {{ products.length }} รายการ
@@ -321,6 +357,20 @@ onMounted(fetchProducts)
     </div>
 
   </div>
+
+  <!-- BACK TO TOP -->
+  <button
+    v-show="showScrollTop"
+    class="btn-top"
+    @click="window.scrollTo({ top: 0, behavior: 'smooth' })"
+    title="กลับด้านบน"
+  >▲</button>
+
+  <!-- FOOTER -->
+  <footer class="app-footer">
+    <span>© 2026 StockPro — ระบบจัดการสินค้าคงคลัง</span>
+  </footer>
+
 </template>
 
 <style scoped>
@@ -328,23 +378,45 @@ onMounted(fetchProducts)
 
 .app-header {
   position: sticky; top: 0; z-index: 100;
-  background: #fff; border-bottom: 1px solid #e2e8f0;
-  height: 62px; padding: 0 1.5rem;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #064e3b 100%);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(16,185,129,.25);
+  height: 64px; padding: 0 1.5rem;
   display: flex; align-items: center; gap: .85rem;
-  box-shadow: 0 1px 6px rgba(0,0,0,.07);
+  box-shadow: 0 4px 24px rgba(16,185,129,.15), 0 1px 0 rgba(255,255,255,.05) inset;
+  overflow: hidden;
 }
-.logo { display: flex; align-items: center; gap: .6rem; }
-.logo-icon { font-size: 1.6rem; }
-.logo-name { font-weight: 800; font-size: 1.15rem; color: #065f46; line-height: 1; }
-.logo-sub  { font-size: .72rem; color: #64748b; }
+.header-glow {
+  position: absolute; left: 50%; top: -30px;
+  transform: translateX(-50%);
+  width: 320px; height: 60px;
+  background: radial-gradient(ellipse, rgba(16,185,129,.35) 0%, transparent 70%);
+  pointer-events: none;
+}
+.logo { display: flex; align-items: center; gap: .6rem; position: relative; }
+.logo-icon { font-size: 1.6rem; filter: drop-shadow(0 0 6px rgba(16,185,129,.7)); }
+.logo-name { font-weight: 800; font-size: 1.15rem; color: #fff; line-height: 1; letter-spacing: .01em; }
+.logo-sub  { font-size: .72rem; color: rgba(167,243,208,.7); }
 .btn-add {
-  margin-left: auto;
-  background: #10b981; color: #fff;
-  border: none; border-radius: 8px;
+  margin-left: auto; position: relative;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff; border: none; border-radius: 8px;
   padding: .55rem 1.2rem; font-size: .9rem; font-weight: 700;
-  cursor: pointer; transition: background .2s;
+  cursor: pointer; transition: all .2s;
+  box-shadow: 0 0 12px rgba(16,185,129,.4);
 }
-.btn-add:hover { background: #059669; }
+.btn-add:hover {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  box-shadow: 0 0 20px rgba(16,185,129,.6);
+  transform: translateY(-1px);
+}
+.btn-export {
+  background: rgba(255,255,255,.1); color: #a7f3d0;
+  border: 1px solid rgba(167,243,208,.3); border-radius: 8px;
+  padding: .5rem .9rem; font-size: .85rem; font-weight: 600;
+  cursor: pointer; transition: all .2s;
+}
+.btn-export:hover { background: rgba(255,255,255,.18); color: #fff; }
 
 .main { max-width: 1280px; margin: 0 auto; padding: 1.75rem 1.5rem; }
 
@@ -508,6 +580,22 @@ onMounted(fetchProducts)
   font-weight: 700; cursor: pointer;
 }
 .btn-danger-confirm:hover { background: #b91c1c; }
+
+.btn-top {
+  position: fixed; bottom: 1.75rem; right: 1.75rem; z-index: 200;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff; border: none; font-size: 1rem;
+  cursor: pointer; box-shadow: 0 4px 14px rgba(16,185,129,.5);
+  transition: all .2s;
+}
+.btn-top:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(16,185,129,.7); }
+
+.app-footer {
+  text-align: center; padding: 1.25rem;
+  font-size: .8rem; color: #94a3b8;
+  border-top: 1px solid rgba(16,185,129,.15); margin-top: 2rem;
+}
 
 @media (max-width: 640px) {
   .form-row { grid-template-columns: 1fr; }
